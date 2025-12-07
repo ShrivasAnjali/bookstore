@@ -4,6 +4,33 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### Maven ###
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+### Maven Test Reports ###
+target/surefire-reports/
+target/failsafe-reports/
+target/site/
+*.log
+
+### Generated Sources ###
+target/generated-sources/
+target/generated-test-sources/
+target/generated-annotations/
+target/generated-test-annotations/
+
+### Maven Status ###
+target/maven-status/
+
 ### STS ###
 .apt_generated
 .classpath
@@ -12,12 +39,26 @@ target/
 .settings
 .springBeans
 .sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
 
 ### IntelliJ IDEA ###
 .idea
 *.iws
 *.iml
 *.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### Eclipse ###
+.classpath
+.project
+.settings/
+bin/
+.metadata
+.recommenders
 
 ### NetBeans ###
 /nbproject/private/
@@ -37,3 +78,7 @@ build/
 *.db-shm
 *.db-wal
 data/
+
+### OS ###
+.DS_Store
+Thumbs.db
