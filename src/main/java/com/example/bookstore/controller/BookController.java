@@ -73,6 +73,17 @@ public class BookController {
         }
     }
     
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> patchBook(@PathVariable Long id, @RequestBody Book bookDetails) {
+        try {
+            Book updatedBook = bookService.patchBook(id, bookDetails);
+            return ResponseEntity.ok(updatedBook);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteBook(@PathVariable Long id) {
         try {

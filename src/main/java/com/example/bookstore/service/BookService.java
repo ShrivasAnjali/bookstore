@@ -109,6 +109,38 @@ public class BookService {
         return bookRepository.save(book);
     }
     
+    public Book patchBook(Long id, Book bookDetails) {
+        Book book = bookRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Book not found with id: " + id));
+        
+        // Check if ISBN is being changed and if it conflicts with another book
+        if (bookDetails.getIsbn() != null && 
+            !bookDetails.getIsbn().equals(book.getIsbn()) &&
+            bookRepository.findByIsbn(bookDetails.getIsbn()).isPresent()) {
+            throw new IllegalArgumentException("Book with ISBN " + bookDetails.getIsbn() + " already exists");
+        }
+        
+        // Only update fields that are provided (not null)
+        if (bookDetails.getTitle() != null) {
+            book.setTitle(bookDetails.getTitle());
+        }
+        if (bookDetails.getAuthor() != null) {
+            book.setAuthor(bookDetails.getAuthor());
+        }
+        if (bookDetails.getIsbn() != null) {
+            book.setIsbn(bookDetails.getIsbn());
+        }
+        if (bookDetails.getPrice() != null) {
+            book.setPrice(bookDetails.getPrice());
+        }
+        if (bookDetails.getQuantity() != null) {
+            book.setQuantity(bookDetails.getQuantity());
+        }
+        book.setUpdatedAt(LocalDateTime.now());
+        
+        return bookRepository.save(book);
+    }
+    
     public void deleteBook(Long id) {
         if (!bookRepository.existsById(id)) {
             throw new IllegalArgumentException("Book not found with id: " + id);
