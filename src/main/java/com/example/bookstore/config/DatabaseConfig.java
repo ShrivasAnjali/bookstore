@@ -6,7 +6,7 @@ import org.springframework.data.jdbc.core.dialect.JdbcDialect;
 
 @Configuration
 public class DatabaseConfig {
-
+    
     @Bean
     public JdbcDialect jdbcDialect() {
         return new SqliteDialect();
