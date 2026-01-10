@@ -20,9 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @Transactional
 @TestPropertySource(properties = {
-    "spring.datasource.url=jdbc:sqlite::memory:",
-    "spring.datasource.driver-class-name=org.sqlite.JDBC",
-    "spring.sql.init.mode=never"
+    "springdoc.swagger-ui.enabled=false",
+    "springdoc.api-docs.enabled=false"
 })
 class BookRepositoryTest {
 
@@ -34,19 +33,8 @@ class BookRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        // Create table for in-memory SQLite
-        jdbcTemplate.execute("""
-            CREATE TABLE IF NOT EXISTS books (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                author TEXT NOT NULL,
-                isbn TEXT UNIQUE,
-                price DECIMAL(10, 2),
-                quantity INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """);
+        // Clear all data before each test to ensure test isolation
+        jdbcTemplate.execute("DELETE FROM books");
     }
 
     @Test
