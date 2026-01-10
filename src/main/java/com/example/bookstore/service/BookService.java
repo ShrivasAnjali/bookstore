@@ -1,155 +1,94 @@
 package com.example.bookstore.service;
 
-import com.example.bookstore.model.Book;
-import com.example.bookstore.repository.BookRepository;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import com.example.bookstore.dto.BookRequest;
+import com.example.bookstore.dto.BookResponse;
+import com.example.bookstore.dto.BookUpdateRequest;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
-@Service
-@Transactional
-public class BookService {
+/**
+ * Service interface for book operations.
+ * Defines the contract for business logic operations related to books.
+ */
+public interface BookService {
     
-    private final BookRepository bookRepository;
-    private final NamedParameterJdbcTemplate jdbcTemplate;
+    /**
+     * Retrieves all books.
+     *
+     * @return list of all books
+     */
+    List<BookResponse> getAllBooks();
     
-    public BookService(BookRepository bookRepository, NamedParameterJdbcTemplate jdbcTemplate) {
-        this.bookRepository = bookRepository;
-        this.jdbcTemplate = jdbcTemplate;
-    }
+    /**
+     * Retrieves a book by its ID.
+     *
+     * @param id the book ID
+     * @return the book response, or null if not found
+     * @throws com.example.bookstore.exception.ResourceNotFoundException if book is not found
+     */
+    BookResponse getBookById(Long id);
     
-    public List<Book> getAllBooks() {
-        return bookRepository.findAll();
-    }
+    /**
+     * Retrieves a book by its ISBN.
+     *
+     * @param isbn the book ISBN
+     * @return the book response, or null if not found
+     * @throws com.example.bookstore.exception.ResourceNotFoundException if book is not found
+     */
+    BookResponse getBookByIsbn(String isbn);
     
-    public Optional<Book> getBookById(Long id) {
-        return bookRepository.findById(id);
-    }
+    /**
+     * Retrieves all books by author.
+     *
+     * @param author the author name
+     * @return list of books by the author
+     */
+    List<BookResponse> getBooksByAuthor(String author);
     
-    public Optional<Book> getBookByIsbn(String isbn) {
-        return bookRepository.findByIsbn(isbn);
-    }
+    /**
+     * Searches books by title (partial match).
+     *
+     * @param title the title to search for
+     * @return list of matching books
+     */
+    List<BookResponse> searchBooksByTitle(String title);
     
-    public List<Book> getBooksByAuthor(String author) {
-        return bookRepository.findByAuthor(author);
-    }
+    /**
+     * Creates a new book.
+     *
+     * @param bookRequest the book creation request
+     * @return the created book response
+     * @throws com.example.bookstore.exception.DuplicateResourceException if ISBN already exists
+     */
+    BookResponse createBook(BookRequest bookRequest);
     
-    public List<Book> searchBooksByTitle(String title) {
-        return bookRepository.findByTitleContaining(title);
-    }
+    /**
+     * Updates an existing book (full update).
+     *
+     * @param id          the book ID
+     * @param bookRequest the book update request
+     * @return the updated book response
+     * @throws com.example.bookstore.exception.ResourceNotFoundException if book is not found
+     * @throws com.example.bookstore.exception.DuplicateResourceException if ISBN conflicts with another book
+     */
+    BookResponse updateBook(Long id, BookRequest bookRequest);
     
-    public Book createBook(Book book) {
-        // Check if ISBN already exists
-        if (book.getIsbn() != null && bookRepository.findByIsbn(book.getIsbn()).isPresent()) {
-            throw new IllegalArgumentException("Book with ISBN " + book.getIsbn() + " already exists");
-        }
-        
-        LocalDateTime now = LocalDateTime.now();
-        book.setCreatedAt(now);
-        book.setUpdatedAt(now);
-        
-        // Use custom insert with SQLite's last_insert_rowid() to avoid getGeneratedKeys() issue
-        String insertSql = "INSERT INTO books (title, author, isbn, price, quantity, created_at, updated_at) " +
-                          "VALUES (:title, :author, :isbn, :price, :quantity, :createdAt, :updatedAt)";
-        
-        SqlParameterSource parameters = new MapSqlParameterSource()
-            .addValue("title", book.getTitle())
-            .addValue("author", book.getAuthor())
-            .addValue("isbn", book.getIsbn())
-            .addValue("price", book.getPrice())
-            .addValue("quantity", book.getQuantity())
-            .addValue("createdAt", book.getCreatedAt())
-            .addValue("updatedAt", book.getUpdatedAt());
-        
-        jdbcTemplate.update(insertSql, parameters);
-        
-        // Get the generated ID using SQLite's last_insert_rowid()
-        Long generatedId = jdbcTemplate.getJdbcOperations()
-            .queryForObject("SELECT last_insert_rowid()", Long.class);
-        
-        book.setId(generatedId);
-        return book;
-    }
+    /**
+     * Partially updates an existing book.
+     *
+     * @param id             the book ID
+     * @param updateRequest  the partial update request
+     * @return the updated book response
+     * @throws com.example.bookstore.exception.ResourceNotFoundException if book is not found
+     * @throws com.example.bookstore.exception.DuplicateResourceException if ISBN conflicts with another book
+     */
+    BookResponse patchBook(Long id, BookUpdateRequest updateRequest);
     
-    public Book updateBook(Long id, Book bookDetails) {
-        Book book = bookRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Book not found with id: " + id));
-        
-        // Check if ISBN is being changed and if it conflicts with another book
-        if (bookDetails.getIsbn() != null && 
-            !bookDetails.getIsbn().equals(book.getIsbn()) &&
-            bookRepository.findByIsbn(bookDetails.getIsbn()).isPresent()) {
-            throw new IllegalArgumentException("Book with ISBN " + bookDetails.getIsbn() + " already exists");
-        }
-        
-        if (bookDetails.getTitle() != null) {
-            book.setTitle(bookDetails.getTitle());
-        }
-        if (bookDetails.getAuthor() != null) {
-            book.setAuthor(bookDetails.getAuthor());
-        }
-        if (bookDetails.getIsbn() != null) {
-            book.setIsbn(bookDetails.getIsbn());
-        }
-        if (bookDetails.getPrice() != null) {
-            book.setPrice(bookDetails.getPrice());
-        }
-        if (bookDetails.getQuantity() != null) {
-            book.setQuantity(bookDetails.getQuantity());
-        }
-        book.setUpdatedAt(LocalDateTime.now());
-        
-        return bookRepository.save(book);
-    }
-    
-    public Book patchBook(Long id, Book bookDetails) {
-        Book book = bookRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Book not found with id: " + id));
-        
-        // Check if ISBN is being changed and if it conflicts with another book
-        if (bookDetails.getIsbn() != null && 
-            !bookDetails.getIsbn().equals(book.getIsbn()) &&
-            bookRepository.findByIsbn(bookDetails.getIsbn()).isPresent()) {
-            throw new IllegalArgumentException("Book with ISBN " + bookDetails.getIsbn() + " already exists");
-        }
-        
-        // Only update fields that are provided (not null)
-        if (bookDetails.getTitle() != null) {
-            book.setTitle(bookDetails.getTitle());
-        }
-        if (bookDetails.getAuthor() != null) {
-            book.setAuthor(bookDetails.getAuthor());
-        }
-        if (bookDetails.getIsbn() != null) {
-            book.setIsbn(bookDetails.getIsbn());
-        }
-        if (bookDetails.getPrice() != null) {
-            book.setPrice(bookDetails.getPrice());
-        }
-        if (bookDetails.getQuantity() != null) {
-            book.setQuantity(bookDetails.getQuantity());
-        }
-        book.setUpdatedAt(LocalDateTime.now());
-        
-        return bookRepository.save(book);
-    }
-    
-    public void deleteBook(Long id) {
-        if (!bookRepository.existsById(id)) {
-            throw new IllegalArgumentException("Book not found with id: " + id);
-        }
-        bookRepository.deleteById(id);
-    }
-    
-    public boolean bookExists(Long id) {
-        return bookRepository.existsById(id);
-    }
+    /**
+     * Deletes a book by its ID.
+     *
+     * @param id the book ID
+     * @throws com.example.bookstore.exception.ResourceNotFoundException if book is not found
+     */
+    void deleteBook(Long id);
 }
-

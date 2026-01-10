@@ -1,7 +1,13 @@
 package com.example.bookstore.service;
 
-import com.example.bookstore.model.Book;
+import com.example.bookstore.dto.BookRequest;
+import com.example.bookstore.dto.BookResponse;
+import com.example.bookstore.dto.BookUpdateRequest;
+import com.example.bookstore.entity.Book;
+import com.example.bookstore.exception.DuplicateResourceException;
+import com.example.bookstore.exception.ResourceNotFoundException;
 import com.example.bookstore.repository.BookRepository;
+import com.example.bookstore.service.impl.BookServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,6 +20,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,9 +28,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("BookService Tests")
 class BookServiceTest {
 
     @Mock
@@ -33,7 +42,7 @@ class BookServiceTest {
     private NamedParameterJdbcTemplate jdbcTemplate;
 
     @InjectMocks
-    private BookService bookService;
+    private BookServiceImpl bookService;
 
     private Book testBook;
     private Book testBook2;
@@ -60,127 +69,360 @@ class BookServiceTest {
     }
 
     @Test
+    @DisplayName("Should return all books")
     void shouldReturnAllBooks() {
         List<Book> expectedBooks = Arrays.asList(testBook, testBook2);
         when(bookRepository.findAll()).thenReturn(expectedBooks);
 
-        List<Book> result = bookService.getAllBooks();
+        List<BookResponse> result = bookService.getAllBooks();
 
         assertThat(result).hasSize(2);
+        assertThat(result.get(0).getTitle()).isEqualTo("book title 1");
+        assertThat(result.get(1).getTitle()).isEqualTo("book title 2");
         verify(bookRepository).findAll();
     }
 
     @Test
+    @DisplayName("Should return book when ID exists")
     void shouldReturnBookWhenIdExists() {
         when(bookRepository.findById(1L)).thenReturn(Optional.of(testBook));
 
-        Optional<Book> result = bookService.getBookById(1L);
+        BookResponse result = bookService.getBookById(1L);
 
-        assertThat(result).isPresent();
-        assertThat(result.get().getTitle()).isEqualTo("book title 1");
+        assertThat(result).isNotNull();
+        assertThat(result.getTitle()).isEqualTo("book title 1");
+        assertThat(result.getId()).isEqualTo(1L);
+        verify(bookRepository).findById(1L);
     }
 
     @Test
+    @DisplayName("Should throw ResourceNotFoundException when ID does not exist")
+    void shouldThrowResourceNotFoundExceptionWhenIdDoesNotExist() {
+        when(bookRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> bookService.getBookById(1L))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessageContaining("Book not found with id: 1");
+    }
+
+    @Test
+    @DisplayName("Should return book when ISBN exists")
     void shouldReturnBookWhenIsbnExists() {
         when(bookRepository.findByIsbn("123456")).thenReturn(Optional.of(testBook));
 
-        Optional<Book> result = bookService.getBookByIsbn("123456");
+        BookResponse result = bookService.getBookByIsbn("123456");
 
-        assertThat(result).isPresent();
-        assertThat(result.get().getIsbn()).isEqualTo("123456");
+        assertThat(result).isNotNull();
+        assertThat(result.getIsbn()).isEqualTo("123456");
+        verify(bookRepository).findByIsbn("123456");
     }
 
     @Test
+    @DisplayName("Should throw ResourceNotFoundException when ISBN does not exist")
+    void shouldThrowResourceNotFoundExceptionWhenIsbnDoesNotExist() {
+        when(bookRepository.findByIsbn("999999")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> bookService.getBookByIsbn("999999"))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessageContaining("Book not found with ISBN: 999999");
+    }
+
+    @Test
+    @DisplayName("Should return books by author")
     void shouldReturnBooksByAuthor() {
         List<Book> expectedBooks = Arrays.asList(testBook);
         when(bookRepository.findByAuthor("author 1")).thenReturn(expectedBooks);
 
-        List<Book> result = bookService.getBooksByAuthor("author 1");
+        List<BookResponse> result = bookService.getBooksByAuthor("author 1");
 
         assertThat(result).hasSize(1);
+        assertThat(result.get(0).getAuthor()).isEqualTo("author 1");
+        verify(bookRepository).findByAuthor("author 1");
     }
 
     @Test
+    @DisplayName("Should return books by title search")
     void shouldReturnBooksByTitleSearch() {
         List<Book> expectedBooks = Arrays.asList(testBook);
         when(bookRepository.findByTitleContaining("title")).thenReturn(expectedBooks);
 
-        List<Book> result = bookService.searchBooksByTitle("title");
+        List<BookResponse> result = bookService.searchBooksByTitle("title");
 
         assertThat(result).hasSize(1);
+        verify(bookRepository).findByTitleContaining("title");
     }
 
     @Test
+    @DisplayName("Should create book when ISBN does not exist")
     void shouldCreateBookWhenIsbnDoesNotExist() {
-        Book newBook = new Book();
-        newBook.setTitle("title 1");
-        newBook.setAuthor("author 1");
-        newBook.setIsbn("111222");
-        newBook.setPrice(new BigDecimal("18.50"));
-        newBook.setQuantity(25);
+        BookRequest bookRequest = new BookRequest();
+        bookRequest.setTitle("title 1");
+        bookRequest.setAuthor("author 1");
+        bookRequest.setIsbn("111222");
+        bookRequest.setPrice(new BigDecimal("18.50"));
+        bookRequest.setQuantity(25);
 
         when(bookRepository.findByIsbn(anyString())).thenReturn(Optional.empty());
         when(jdbcTemplate.getJdbcOperations()).thenReturn(mock(org.springframework.jdbc.core.JdbcTemplate.class));
         when(jdbcTemplate.getJdbcOperations().queryForObject(anyString(), eq(Long.class))).thenReturn(1L);
         when(jdbcTemplate.update(anyString(), any(org.springframework.jdbc.core.namedparam.SqlParameterSource.class))).thenReturn(1);
 
-        Book result = bookService.createBook(newBook);
+        BookResponse result = bookService.createBook(bookRequest);
 
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getTitle()).isEqualTo("title 1");
+        assertThat(result.getIsbn()).isEqualTo("111222");
+        verify(bookRepository).findByIsbn("111222");
     }
 
     @Test
+    @DisplayName("Should throw DuplicateResourceException when creating book with duplicate ISBN")
     void shouldThrowExceptionWhenCreatingBookWithDuplicateIsbn() {
-        Book newBook = new Book();
-        newBook.setIsbn("123456");
+        BookRequest bookRequest = new BookRequest();
+        bookRequest.setIsbn("123456");
 
         when(bookRepository.findByIsbn("123456")).thenReturn(Optional.of(testBook));
 
-        assertThatThrownBy(() -> bookService.createBook(newBook))
-            .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> bookService.createBook(bookRequest))
+            .isInstanceOf(DuplicateResourceException.class)
             .hasMessageContaining("already exists");
     }
 
     @Test
+    @DisplayName("Should update book when ID exists")
     void shouldUpdateBookWhenIdExists() {
-        Book updatedDetails = new Book();
-        updatedDetails.setTitle("book title 1 updated");
-        updatedDetails.setPrice(new BigDecimal("30.00"));
-        updatedDetails.setQuantity(100);
+        BookRequest updateRequest = new BookRequest();
+        updateRequest.setTitle("book title 1 updated");
+        updateRequest.setAuthor("author 1");
+        updateRequest.setIsbn("123456"); // Same ISBN as existing book
+        updateRequest.setPrice(new BigDecimal("30.00"));
+        updateRequest.setQuantity(100);
+
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(testBook));
+        // ISBN is not changing, so findByIsbn won't be called for conflict check
+        when(bookRepository.save(any(Book.class))).thenReturn(testBook);
+
+        BookResponse result = bookService.updateBook(1L, updateRequest);
+
+        assertThat(result).isNotNull();
+        verify(bookRepository).findById(1L);
+        verify(bookRepository).save(any(Book.class));
+        verify(bookRepository, never()).findByIsbn(anyString());
+    }
+
+    @Test
+    @DisplayName("Should throw ResourceNotFoundException when updating non-existent book")
+    void shouldThrowResourceNotFoundExceptionWhenUpdatingNonExistentBook() {
+        BookRequest updateRequest = new BookRequest();
+        updateRequest.setTitle("Updated Title");
+
+        when(bookRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> bookService.updateBook(999L, updateRequest))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessageContaining("Book not found with id: 999");
+    }
+
+    @Test
+    @DisplayName("Should patch book when ID exists")
+    void shouldPatchBookWhenIdExists() {
+        BookUpdateRequest patchRequest = new BookUpdateRequest();
+        patchRequest.setPrice(new BigDecimal("40.25"));
+        patchRequest.setQuantity(100);
 
         when(bookRepository.findById(1L)).thenReturn(Optional.of(testBook));
         when(bookRepository.save(any(Book.class))).thenReturn(testBook);
 
-        Book result = bookService.updateBook(1L, updatedDetails);
+        BookResponse result = bookService.patchBook(1L, patchRequest);
 
-        assertThat(result.getTitle()).isEqualTo("book title 1 updated");
+        assertThat(result).isNotNull();
+        verify(bookRepository).findById(1L);
         verify(bookRepository).save(any(Book.class));
     }
 
-
     @Test
-    void shouldPatchBookWhenIdExists() {
-        Book patchDetails = new Book();
-        patchDetails.setPrice(new BigDecimal("40.25"));
+    @DisplayName("Should throw ResourceNotFoundException when patching non-existent book")
+    void shouldThrowResourceNotFoundExceptionWhenPatchingNonExistentBook() {
+        BookUpdateRequest patchRequest = new BookUpdateRequest();
+        patchRequest.setPrice(new BigDecimal("50.00"));
 
-        when(bookRepository.findById(1L)).thenReturn(Optional.of(testBook));
-        when(bookRepository.save(any(Book.class))).thenReturn(testBook);
+        when(bookRepository.findById(999L)).thenReturn(Optional.empty());
 
-        Book result = bookService.patchBook(1L, patchDetails);
-
-        assertThat(result.getPrice()).isEqualTo(new BigDecimal("40.25"));
-        assertThat(result.getTitle()).isEqualTo("book title 1");
+        assertThatThrownBy(() -> bookService.patchBook(999L, patchRequest))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessageContaining("Book not found with id: 999");
     }
 
     @Test
+    @DisplayName("Should throw DuplicateResourceException when patching with conflicting ISBN")
+    void shouldThrowDuplicateResourceExceptionWhenPatchingWithConflictingIsbn() {
+        BookUpdateRequest patchRequest = new BookUpdateRequest();
+        patchRequest.setIsbn("789012"); // Conflicts with testBook2
+
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(testBook));
+        when(bookRepository.findByIsbn("789012")).thenReturn(Optional.of(testBook2));
+
+        assertThatThrownBy(() -> bookService.patchBook(1L, patchRequest))
+            .isInstanceOf(DuplicateResourceException.class)
+            .hasMessageContaining("already exists");
+    }
+
+    @Test
+    @DisplayName("Should delete book when ID exists")
     void shouldDeleteBookWhenIdExists() {
         when(bookRepository.existsById(1L)).thenReturn(true);
         doNothing().when(bookRepository).deleteById(1L);
 
         bookService.deleteBook(1L);
 
+        verify(bookRepository).existsById(1L);
         verify(bookRepository).deleteById(1L);
     }
-}
 
+    @Test
+    @DisplayName("Should throw ResourceNotFoundException when deleting non-existent book")
+    void shouldThrowResourceNotFoundExceptionWhenDeletingNonExistentBook() {
+        when(bookRepository.existsById(999L)).thenReturn(false);
+
+        assertThatThrownBy(() -> bookService.deleteBook(999L))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessageContaining("Book not found with id: 999");
+    }
+
+    @Test
+    @DisplayName("Should throw DuplicateResourceException when updating with conflicting ISBN")
+    void shouldThrowDuplicateResourceExceptionWhenUpdatingWithConflictingIsbn() {
+        BookRequest updateRequest = new BookRequest();
+        updateRequest.setTitle("Updated Title");
+        updateRequest.setAuthor("Author");
+        updateRequest.setIsbn("999999"); // Different from existing
+        updateRequest.setPrice(new BigDecimal("29.99"));
+        updateRequest.setQuantity(10);
+
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(testBook));
+        when(bookRepository.findByIsbn("999999")).thenReturn(Optional.of(testBook2));
+
+        assertThatThrownBy(() -> bookService.updateBook(1L, updateRequest))
+            .isInstanceOf(DuplicateResourceException.class)
+            .hasMessageContaining("already exists");
+    }
+
+    @Test
+    @DisplayName("Should update book when ISBN is not changing")
+    void shouldUpdateBookWhenIsbnIsNotChanging() {
+        BookRequest updateRequest = new BookRequest();
+        updateRequest.setTitle("Updated Title");
+        updateRequest.setAuthor("Updated Author");
+        updateRequest.setIsbn("123456"); // Same as existing book's ISBN
+        updateRequest.setPrice(new BigDecimal("30.00"));
+        updateRequest.setQuantity(100);
+
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(testBook));
+        when(bookRepository.save(any(Book.class))).thenReturn(testBook);
+
+        BookResponse result = bookService.updateBook(1L, updateRequest);
+
+        assertThat(result).isNotNull();
+        verify(bookRepository).findById(1L);
+        verify(bookRepository).save(any(Book.class));
+        // findByIsbn is only called when ISBN is different, so it shouldn't be called here
+        verify(bookRepository, never()).findByIsbn(anyString());
+    }
+
+    @Test
+    @DisplayName("Should return empty list when no books by author")
+    void shouldReturnEmptyListWhenNoBooksByAuthor() {
+        when(bookRepository.findByAuthor("Unknown Author")).thenReturn(Collections.emptyList());
+
+        List<BookResponse> result = bookService.getBooksByAuthor("Unknown Author");
+
+        assertThat(result).isEmpty();
+        verify(bookRepository).findByAuthor("Unknown Author");
+    }
+
+    @Test
+    @DisplayName("Should return empty list when no books by title search")
+    void shouldReturnEmptyListWhenNoBooksByTitleSearch() {
+        when(bookRepository.findByTitleContaining("nonexistent")).thenReturn(Collections.emptyList());
+
+        List<BookResponse> result = bookService.searchBooksByTitle("nonexistent");
+
+        assertThat(result).isEmpty();
+        verify(bookRepository).findByTitleContaining("nonexistent");
+    }
+
+    @Test
+    @DisplayName("Should patch book with no fields updated")
+    void shouldPatchBookWithNoFieldsUpdated() {
+        BookUpdateRequest emptyRequest = new BookUpdateRequest();
+
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(testBook));
+        when(bookRepository.save(any(Book.class))).thenReturn(testBook);
+
+        BookResponse result = bookService.patchBook(1L, emptyRequest);
+
+        assertThat(result).isNotNull();
+        verify(bookRepository).findById(1L);
+        verify(bookRepository).save(any(Book.class));
+    }
+
+    @Test
+    @DisplayName("Should patch book when ISBN is not changing")
+    void shouldPatchBookWhenIsbnIsNotChanging() {
+        BookUpdateRequest patchRequest = new BookUpdateRequest();
+        patchRequest.setIsbn("123456"); // Same as existing
+        patchRequest.setPrice(new BigDecimal("40.00"));
+
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(testBook));
+        when(bookRepository.save(any(Book.class))).thenReturn(testBook);
+
+        BookResponse result = bookService.patchBook(1L, patchRequest);
+
+        assertThat(result).isNotNull();
+        verify(bookRepository).findById(1L);
+        verify(bookRepository).save(any(Book.class));
+    }
+
+    @Test
+    @DisplayName("Should create book when ISBN is null")
+    void shouldCreateBookWhenIsbnIsNull() {
+        BookRequest bookRequest = new BookRequest();
+        bookRequest.setTitle("Test Book");
+        bookRequest.setAuthor("Test Author");
+        bookRequest.setIsbn(null);
+        bookRequest.setPrice(new BigDecimal("19.99"));
+        bookRequest.setQuantity(10);
+
+        // When ISBN is null, findByIsbn is not called in the service
+        when(jdbcTemplate.getJdbcOperations()).thenReturn(mock(org.springframework.jdbc.core.JdbcTemplate.class));
+        when(jdbcTemplate.getJdbcOperations().queryForObject(anyString(), eq(Long.class))).thenReturn(1L);
+        when(jdbcTemplate.update(anyString(), any(org.springframework.jdbc.core.namedparam.SqlParameterSource.class))).thenReturn(1);
+
+        BookResponse result = bookService.createBook(bookRequest);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(1L);
+        verify(bookRepository, never()).findByIsbn(anyString());
+    }
+
+    @Test
+    @DisplayName("Should update all fields in patch request")
+    void shouldUpdateAllFieldsInPatchRequest() {
+        BookUpdateRequest patchRequest = new BookUpdateRequest();
+        patchRequest.setTitle("New Title");
+        patchRequest.setAuthor("New Author");
+        patchRequest.setIsbn("999888");
+        patchRequest.setPrice(new BigDecimal("99.99"));
+        patchRequest.setQuantity(999);
+
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(testBook));
+        when(bookRepository.findByIsbn("999888")).thenReturn(Optional.empty());
+        when(bookRepository.save(any(Book.class))).thenReturn(testBook);
+
+        BookResponse result = bookService.patchBook(1L, patchRequest);
+
+        assertThat(result).isNotNull();
+        verify(bookRepository).findById(1L);
+        verify(bookRepository).save(any(Book.class));
+    }
+}

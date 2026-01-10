@@ -7,6 +7,10 @@ import org.springframework.data.relational.core.dialect.LockClause;
 import org.springframework.data.relational.core.sql.IdentifierProcessing;
 import org.springframework.data.relational.core.sql.LockOptions;
 
+/**
+ * Custom JDBC dialect implementation for SQLite.
+ * Provides SQLite-specific SQL generation support for Spring Data JDBC.
+ */
 public class SqliteDialect extends AbstractDialect implements JdbcDialect {
     
     private static final LimitClause LIMIT_CLAUSE = new LimitClause() {

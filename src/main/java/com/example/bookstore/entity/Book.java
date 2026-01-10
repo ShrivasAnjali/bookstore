@@ -1,4 +1,4 @@
-package com.example.bookstore.model;
+package com.example.bookstore.entity;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
@@ -6,6 +6,10 @@ import org.springframework.data.relational.core.mapping.Table;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * Entity class representing a Book in the bookstore.
+ * Maps to the 'books' table in the database.
+ */
 @Table("books")
 public class Book {
     
@@ -19,9 +23,21 @@ public class Book {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    /**
+     * Default constructor.
+     */
     public Book() {
     }
 
+    /**
+     * Constructor with book details (excluding id and timestamps).
+     *
+     * @param title    the book title
+     * @param author   the book author
+     * @param isbn     the book ISBN
+     * @param price    the book price
+     * @param quantity the book quantity in stock
+     */
     public Book(String title, String author, String isbn, BigDecimal price, Integer quantity) {
         this.title = title;
         this.author = author;
@@ -96,4 +112,3 @@ public class Book {
         this.updatedAt = updatedAt;
     }
 }
-
