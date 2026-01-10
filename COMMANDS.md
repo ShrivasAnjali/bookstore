@@ -258,6 +258,275 @@ The following packages are excluded from coverage (as configured in `pom.xml`):
 
 ---
 
+## 🔍 Static Code Analysis (SonarQube / SonarCloud)
+
+### Prerequisites
+- SonarQube Server running (for SonarQube) OR SonarCloud account (for SonarCloud)
+- Authentication token configured (for SonarCloud) or credentials (for SonarQube Server)
+- `sonar-project.properties` file configured at project root
+
+### SonarCloud Token Configuration
+**⚠️ Security Note:** Never commit tokens to version control. Use environment variables or GitHub Secrets.
+
+**For Local Use:**
+Set environment variable before running:
+```bash
+export SONAR_TOKEN=your-sonarcloud-token-here
+export SONAR_ORGANIZATION=shrivasanjali
+```
+
+Get your token from: https://sonarcloud.io/account/security
+
+**For GitHub Actions:**
+Add as repository secrets (Settings → Secrets and variables → Actions):
+- `SONAR_TOKEN`: Your SonarCloud token
+- `SONAR_ORGANIZATION`: `shrivasanjali`
+
+### Run SonarQube Analysis (Local SonarQube Server)
+**Windows:**
+```cmd
+.\mvnw.cmd clean test sonar:sonar
+```
+
+**macOS/Linux:**
+```bash
+./mvnw clean test sonar:sonar
+```
+
+Runs tests, generates JaCoCo coverage reports, and performs SonarQube analysis. Requires SonarQube Server running at configured URL (default: `http://localhost:9000`).
+
+### Run SonarQube Analysis with Custom Server URL
+**Windows:**
+```cmd
+.\mvnw.cmd clean test sonar:sonar -Dsonar.host.url=http://your-sonarqube-server:9000
+```
+
+**macOS/Linux:**
+```bash
+./mvnw clean test sonar:sonar -Dsonar.host.url=http://your-sonarqube-server:9000
+```
+
+### Run SonarQube Analysis with Authentication
+**Windows:**
+```cmd
+.\mvnw.cmd clean test sonar:sonar -Dsonar.login=your-token
+```
+
+**macOS/Linux:**
+```bash
+./mvnw clean test sonar:sonar -Dsonar.login=your-token
+```
+
+### Run SonarCloud Analysis
+**Windows:**
+```cmd
+REM Set token as environment variable
+set SONAR_TOKEN=your-sonarcloud-token-here
+set SONAR_ORGANIZATION=shrivasanjali
+.\mvnw.cmd clean test sonar:sonar
+```
+
+**macOS/Linux:**
+```bash
+# Set token as environment variable
+export SONAR_TOKEN=your-sonarcloud-token-here
+export SONAR_ORGANIZATION=shrivasanjali
+./mvnw clean test sonar:sonar
+```
+
+**Alternative: Pass token directly**
+**Windows:**
+```cmd
+.\mvnw.cmd clean test sonar:sonar -Dsonar.login=your-sonarcloud-token-here -Dsonar.organization=shrivasanjali
+```
+
+**macOS/Linux:**
+```bash
+./mvnw clean test sonar:sonar -Dsonar.login=your-sonarcloud-token-here -Dsonar.organization=shrivasanjali
+```
+
+**Note**: Replace `your-sonarcloud-token-here` with your actual token from https://sonarcloud.io/account/security
+
+### Run SonarCloud Analysis with Environment Variables (Recommended)
+**Windows:**
+```cmd
+set SONAR_TOKEN=your-sonarcloud-token-here
+set SONAR_ORGANIZATION=shrivasanjali
+.\mvnw.cmd clean test sonar:sonar
+```
+
+**macOS/Linux:**
+```bash
+export SONAR_TOKEN=your-sonarcloud-token-here
+export SONAR_ORGANIZATION=shrivasanjali
+./mvnw clean test sonar:sonar
+```
+
+**Tip**: Add these to your shell profile (`.bashrc`, `.zshrc`, etc.) to persist across sessions. Never commit tokens to version control!
+
+### Quick Run Scripts (Easiest Method)
+**Windows:**
+```cmd
+.\run-sonar.cmd
+```
+
+**macOS/Linux:**
+```bash
+./run-sonar.sh
+```
+
+These scripts require `SONAR_TOKEN` environment variable to be set. They will prompt you if it's missing.
+
+### Complete Analysis Workflow (Tests + Coverage + SonarQube)
+**Windows:**
+```cmd
+REM Step 1: Clean, compile, and run tests
+.\mvnw.cmd clean test
+
+REM Step 2: Generate coverage reports
+.\mvnw.cmd jacoco:report
+
+REM Step 3: Run SonarQube analysis
+.\mvnw.cmd sonar:sonar -Dsonar.login=your-token
+```
+
+**macOS/Linux:**
+```bash
+# Step 1: Clean, compile, and run tests
+./mvnw clean test
+
+# Step 2: Generate coverage reports
+./mvnw jacoco:report
+
+# Step 3: Run SonarQube analysis
+./mvnw sonar:sonar -Dsonar.login=your-token
+```
+
+### Verify SonarQube Configuration
+**Windows:**
+```cmd
+.\mvnw.cmd sonar:sonar -Dsonar.scanner.dumpToFile=sonar-config.txt
+```
+
+**macOS/Linux:**
+```bash
+./mvnw sonar:sonar -Dsonar.scanner.dumpToFile=sonar-config.txt
+```
+
+Dumps SonarQube configuration to `sonar-config.txt` for verification without running analysis.
+
+### SonarQube Configuration File
+The project includes `sonar-project.properties` at the root with:
+- Project key: `com.example:bookstore`
+- Source directories: `src/main/java`
+- Test directories: `src/test/java`
+- JaCoCo XML report path: `target/site/jacoco/jacoco.xml`
+- Exclusions matching JaCoCo configuration
+
+### CI/CD Integration Examples
+
+#### GitHub Actions (SonarCloud)
+The workflow file `.github/workflows/sonarcloud.yml` is already configured.
+
+**Setup Steps:**
+1. Go to GitHub repository → **Settings** → **Secrets and variables** → **Actions**
+2. Add secrets:
+   - `SONAR_TOKEN`: Your SonarCloud token (get from https://sonarcloud.io/account/security)
+   - `SONAR_ORGANIZATION`: `shrivasanjali`
+3. Push code - analysis runs automatically on push/PR
+
+**Manual Workflow Trigger:**
+The workflow can also be triggered manually from GitHub Actions tab.
+
+#### GitLab CI (SonarQube)
+```yaml
+sonarqube:
+  script:
+    - ./mvnw clean test sonar:sonar
+      -Dsonar.host.url=$SONAR_HOST_URL
+      -Dsonar.login=$SONAR_TOKEN
+```
+
+#### Jenkins Pipeline (SonarQube)
+```groovy
+stage('SonarQube Analysis') {
+    steps {
+        sh './mvnw clean test sonar:sonar'
+    }
+}
+```
+
+### View Analysis Results
+After running analysis:
+- **SonarCloud**: Results available at `https://sonarcloud.io/dashboard?id=com.example:bookstore`
+- **SonarQube Server**: Results available at configured server URL (default: `http://localhost:9000`)
+
+### SonarQube Quality Gates
+The analysis will check against configured quality gates for:
+- Code coverage thresholds
+- Code smells
+- Security vulnerabilities
+- Bugs
+- Maintainability ratings
+
+### Troubleshooting SonarQube
+
+#### Authentication Issues
+**Windows:**
+```cmd
+REM Verify token is set correctly
+echo %SONAR_TOKEN%
+
+REM Or pass token directly
+.\mvnw.cmd sonar:sonar -Dsonar.login=your-token
+```
+
+**macOS/Linux:**
+```bash
+# Verify token is set correctly
+echo $SONAR_TOKEN
+
+# Or pass token directly
+./mvnw sonar:sonar -Dsonar.login=your-token
+```
+
+#### Coverage Report Not Found
+Ensure JaCoCo XML report exists:
+**Windows:**
+```cmd
+dir target\site\jacoco\jacoco.xml
+```
+
+**macOS/Linux:**
+```bash
+ls -lh target/site/jacoco/jacoco.xml
+```
+
+If missing, regenerate:
+**Windows:**
+```cmd
+.\mvnw.cmd clean test jacoco:report
+```
+
+**macOS/Linux:**
+```bash
+./mvnw clean test jacoco:report
+```
+
+#### Connection Issues
+Verify SonarQube server is accessible:
+**Windows:**
+```cmd
+curl http://localhost:9000/api/system/status
+```
+
+**macOS/Linux:**
+```bash
+curl http://localhost:9000/api/system/status
+```
+
+---
+
 ## 📚 API Documentation (Swagger/OpenAPI)
 
 ### Access Swagger UI
@@ -686,13 +955,16 @@ REM 2. Run tests with coverage
 REM 3. View coverage report
 start target\site\jacoco\index.html
 
-REM 4. Start the application
+REM 4. Run SonarQube analysis (optional)
+.\mvnw.cmd sonar:sonar -Dsonar.login=your-token
+
+REM 5. Start the application
 .\mvnw.cmd spring-boot:run
 
-REM 5. In another terminal, test the API
+REM 6. In another terminal, test the API
 curl http://localhost:8080/health
 
-REM 6. Access Swagger UI
+REM 7. Access Swagger UI
 start http://localhost:8080/swagger-ui.html
 ```
 
@@ -707,13 +979,16 @@ start http://localhost:8080/swagger-ui.html
 # 3. View coverage report
 open target/site/jacoco/index.html
 
-# 4. Start the application
+# 4. Run SonarQube analysis (optional)
+./mvnw sonar:sonar -Dsonar.login=your-token
+
+# 5. Start the application
 ./mvnw spring-boot:run
 
-# 5. In another terminal, test the API
+# 6. In another terminal, test the API
 curl http://localhost:8080/health
 
-# 6. Access Swagger UI
+# 7. Access Swagger UI
 open http://localhost:8080/swagger-ui.html
 ```
 
@@ -801,6 +1076,9 @@ rm -rf ~/.m2/repository
 - **SpringDoc OpenAPI**: https://springdoc.org/
 - **JaCoCo Documentation**: https://www.jacoco.org/jacoco/trunk/doc/
 - **Maven Documentation**: https://maven.apache.org/guides/
+- **SonarQube Documentation**: https://docs.sonarqube.org/
+- **SonarCloud Documentation**: https://docs.sonarcloud.io/
+- **SonarQube Maven Plugin**: https://docs.sonarqube.org/latest/analysis/scan/sonarscanner-for-maven/
 
 ---
 
@@ -813,6 +1091,7 @@ After setting up, verify everything works:
 - [ ] Swagger UI is accessible: http://localhost:8080/swagger-ui.html
 - [ ] All tests pass: `.\mvnw.cmd test` (Windows) or `./mvnw test` (macOS/Linux)
 - [ ] Code coverage report is generated: `start target\site\jacoco\index.html` (Windows) or `open target/site/jacoco/index.html` (macOS/Linux)
+- [ ] SonarQube analysis runs successfully: `.\mvnw.cmd sonar:sonar` (Windows) or `./mvnw sonar:sonar` (macOS/Linux)
 - [ ] Can create a book via API
 - [ ] Can retrieve books via API
 
