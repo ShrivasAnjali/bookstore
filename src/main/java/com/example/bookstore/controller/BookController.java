@@ -3,7 +3,6 @@ package com.example.bookstore.controller;
 import com.example.bookstore.dto.BookRequest;
 import com.example.bookstore.dto.BookResponse;
 import com.example.bookstore.dto.BookUpdateRequest;
-import com.example.bookstore.dto.ErrorResponse;
 import com.example.bookstore.service.BookService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

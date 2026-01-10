@@ -60,7 +60,7 @@ public class BookServiceImpl implements BookService {
     @Transactional(readOnly = true)
     public BookResponse getBookById(Long id) {
         Book book = bookRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("Book not found with id: %d", id)));
         return BookMapper.toResponse(book);
     }
     
@@ -71,7 +71,7 @@ public class BookServiceImpl implements BookService {
     @Transactional(readOnly = true)
     public BookResponse getBookByIsbn(String isbn) {
         Book book = bookRepository.findByIsbn(isbn)
-                .orElseThrow(() -> new ResourceNotFoundException("Book not found with ISBN: " + isbn));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("Book not found with ISBN: %s", isbn)));
         return BookMapper.toResponse(book);
     }
     
@@ -100,14 +100,23 @@ public class BookServiceImpl implements BookService {
     }
     
     /**
+     * Checks if an ISBN already exists and throws exception if it does.
+     *
+     * @param isbn the ISBN to check
+     * @throws DuplicateResourceException if ISBN already exists
+     */
+    private void validateIsbnNotExists(String isbn) {
+        if (isbn != null && bookRepository.findByIsbn(isbn).isPresent()) {
+            throw new DuplicateResourceException(String.format("Book with ISBN %s already exists", isbn));
+        }
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
     public BookResponse createBook(BookRequest bookRequest) {
-        // Check if ISBN already exists
-        if (bookRequest.getIsbn() != null && bookRepository.findByIsbn(bookRequest.getIsbn()).isPresent()) {
-            throw new DuplicateResourceException("Book with ISBN " + bookRequest.getIsbn() + " already exists");
-        }
+        validateIsbnNotExists(bookRequest.getIsbn());
         
         Book book = BookMapper.toEntity(bookRequest);
         
@@ -140,13 +149,11 @@ public class BookServiceImpl implements BookService {
     @Override
     public BookResponse updateBook(Long id, BookRequest bookRequest) {
         Book book = bookRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("Book not found with id: %d", id)));
         
         // Check if ISBN is being changed and if it conflicts with another book
-        if (bookRequest.getIsbn() != null && 
-            !bookRequest.getIsbn().equals(book.getIsbn()) &&
-            bookRepository.findByIsbn(bookRequest.getIsbn()).isPresent()) {
-            throw new DuplicateResourceException("Book with ISBN " + bookRequest.getIsbn() + " already exists");
+        if (bookRequest.getIsbn() != null && !bookRequest.getIsbn().equals(book.getIsbn())) {
+            validateIsbnNotExists(bookRequest.getIsbn());
         }
         
         BookMapper.updateEntityFromRequest(book, bookRequest);
@@ -160,13 +167,11 @@ public class BookServiceImpl implements BookService {
     @Override
     public BookResponse patchBook(Long id, BookUpdateRequest updateRequest) {
         Book book = bookRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Book not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("Book not found with id: %d", id)));
         
         // Check if ISBN is being changed and if it conflicts with another book
-        if (updateRequest.getIsbn() != null && 
-            !updateRequest.getIsbn().equals(book.getIsbn()) &&
-            bookRepository.findByIsbn(updateRequest.getIsbn()).isPresent()) {
-            throw new DuplicateResourceException("Book with ISBN " + updateRequest.getIsbn() + " already exists");
+        if (updateRequest.getIsbn() != null && !updateRequest.getIsbn().equals(book.getIsbn())) {
+            validateIsbnNotExists(updateRequest.getIsbn());
         }
         
         BookMapper.updateEntity(book, updateRequest);
@@ -180,7 +185,7 @@ public class BookServiceImpl implements BookService {
     @Override
     public void deleteBook(Long id) {
         if (!bookRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Book not found with id: " + id);
+            throw new ResourceNotFoundException(String.format("Book not found with id: %d", id));
         }
         bookRepository.deleteById(id);
     }

@@ -21,6 +21,16 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     /**
+     * Extracts the request path from WebRequest description.
+     *
+     * @param request the web request
+     * @return the cleaned request path
+     */
+    private String extractPath(WebRequest request) {
+        return request.getDescription(false).replace("uri=", "");
+    }
+
+    /**
      * Handles ResourceNotFoundException.
      *
      * @param ex      the exception
@@ -34,7 +44,7 @@ public class GlobalExceptionHandler {
                 HttpStatus.NOT_FOUND.value(),
                 "Resource Not Found",
                 ex.getMessage(),
-                request.getDescription(false).replace("uri=", "")
+                extractPath(request)
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
@@ -53,7 +63,7 @@ public class GlobalExceptionHandler {
                 HttpStatus.CONFLICT.value(),
                 "Duplicate Resource",
                 ex.getMessage(),
-                request.getDescription(false).replace("uri=", "")
+                extractPath(request)
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
@@ -72,7 +82,7 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST.value(),
                 "Validation Failed",
                 ex.getMessage(),
-                request.getDescription(false).replace("uri=", "")
+                extractPath(request)
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
@@ -100,7 +110,7 @@ public class GlobalExceptionHandler {
         errorResponse.put("error", "Validation Failed");
         errorResponse.put("message", "Request validation failed");
         errorResponse.put("errors", errors);
-        errorResponse.put("path", request.getDescription(false).replace("uri=", ""));
+        errorResponse.put("path", extractPath(request));
 
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
@@ -119,7 +129,7 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST.value(),
                 "Constraint Violation",
                 ex.getMessage(),
-                request.getDescription(false).replace("uri=", "")
+                extractPath(request)
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
@@ -138,7 +148,7 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST.value(),
                 "Invalid Argument",
                 ex.getMessage(),
-                request.getDescription(false).replace("uri=", "")
+                extractPath(request)
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
@@ -157,7 +167,7 @@ public class GlobalExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "Internal Server Error",
                 "An unexpected error occurred",
-                request.getDescription(false).replace("uri=", "")
+                extractPath(request)
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
