@@ -1,13 +1,7 @@
 package com.example.bookstore.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -35,17 +29,6 @@ public class BookstoreController {
             summary = "Home endpoint", 
             description = "Returns a welcome message along with the current API status and timestamp. This endpoint can be used to verify that the API is running and accessible."
     )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200", 
-                    description = "Welcome message and status returned successfully",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = Map.class),
-                            examples = @ExampleObject(value = "{\"message\":\"Welcome to Bookstore API\",\"status\":\"running\",\"timestamp\":1705312200000}")
-                    )
-            )
-    })
     public Map<String, Object> home() {
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Welcome to Bookstore API");
@@ -64,17 +47,6 @@ public class BookstoreController {
             summary = "Health check", 
             description = "Returns the health status of the application. This endpoint is typically used by monitoring systems, load balancers, and orchestration platforms to verify that the service is operational and ready to accept requests."
     )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200", 
-                    description = "Health status returned successfully",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = Map.class),
-                            examples = @ExampleObject(value = "{\"status\":\"UP\"}")
-                    )
-            )
-    })
     public Map<String, String> health() {
         Map<String, String> response = new HashMap<>();
         response.put("status", "UP");
