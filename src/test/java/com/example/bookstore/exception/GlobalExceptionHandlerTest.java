@@ -1,9 +1,7 @@
 package com.example.bookstore.exception;
 
 import com.example.bookstore.dto.ErrorResponse;
-import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
-import jakarta.validation.Path;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -97,15 +95,15 @@ class GlobalExceptionHandlerTest {
         
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().get("status")).isEqualTo(400);
-        assertThat(response.getBody().get("error")).isEqualTo("Validation Failed");
+        assertThat(response.getBody()).containsEntry("status", 400);
+        assertThat(response.getBody()).containsEntry("error", "Validation Failed");
         assertThat(response.getBody().get("errors")).isInstanceOf(Map.class);
         
         @SuppressWarnings("unchecked")
         Map<String, String> errors = (Map<String, String>) response.getBody().get("errors");
         assertThat(errors).hasSize(2);
-        assertThat(errors.get("title")).isEqualTo("Title is required");
-        assertThat(errors.get("price")).isEqualTo("Price must be positive");
+        assertThat(errors).containsEntry("title", "Title is required");
+        assertThat(errors).containsEntry("price", "Price must be positive");
     }
 
     @Test

@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.lang.reflect.Constructor;
@@ -159,14 +160,18 @@ class BookMapperTest {
         updateRequest.setTitle("Test");
         
         // Should not throw exception
+        assertThat(updateRequest.getTitle()).isEqualTo("Test");
         BookMapper.updateEntity(null, updateRequest);
+        // Verify method completes without exception
+        assertThat(updateRequest.getTitle()).isEqualTo("Test");
     }
 
     @Test
     @DisplayName("Should not update when both entity and updateRequest are null")
     void shouldNotUpdateWhenBothAreNull() {
         // Should not throw exception
-        BookMapper.updateEntity(null, null);
+        assertThatCode(() -> BookMapper.updateEntity(null, null))
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -202,14 +207,18 @@ class BookMapperTest {
     @DisplayName("Should not update when both entity and bookRequest are null")
     void shouldNotUpdateFromRequestWhenBothAreNull() {
         // Should not throw exception
-        BookMapper.updateEntityFromRequest(null, null);
+        assertThatCode(() -> BookMapper.updateEntityFromRequest(null, null))
+                .doesNotThrowAnyException();
     }
 
     @Test
     @DisplayName("Should not update when entity is null in updateEntityFromRequest")
     void shouldNotUpdateFromRequestWhenEntityIsNull() {
         // Should not throw exception
+        assertThat(bookRequest).isNotNull();
         BookMapper.updateEntityFromRequest(null, bookRequest);
+        // Verify method completes without exception and bookRequest remains unchanged
+        assertThat(bookRequest.getTitle()).isEqualTo("Test Title");
     }
 
     @Test

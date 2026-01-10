@@ -47,8 +47,11 @@ public class BookUpdateRequest {
 
     /**
      * Default constructor.
+     * Required for JSON deserialization by Spring Framework.
+     * Fields are set via setters during deserialization.
      */
     public BookUpdateRequest() {
+        // Empty constructor required for framework deserialization
     }
 
     public String getTitle() {

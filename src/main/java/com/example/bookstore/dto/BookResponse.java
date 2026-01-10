@@ -39,32 +39,11 @@ public class BookResponse {
 
     /**
      * Default constructor.
+     * Required for JSON deserialization by Spring Framework.
+     * Fields are set via setters during deserialization.
      */
     public BookResponse() {
-    }
-
-    /**
-     * Constructor with all fields.
-     *
-     * @param id        the book ID
-     * @param title     the book title
-     * @param author    the book author
-     * @param isbn      the book ISBN
-     * @param price     the book price
-     * @param quantity  the book quantity in stock
-     * @param createdAt the creation timestamp
-     * @param updatedAt the last update timestamp
-     */
-    public BookResponse(Long id, String title, String author, String isbn, BigDecimal price, 
-                       Integer quantity, LocalDateTime createdAt, LocalDateTime updatedAt) {
-        this.id = id;
-        this.title = title;
-        this.author = author;
-        this.isbn = isbn;
-        this.price = price;
-        this.quantity = quantity;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
+        // Empty constructor required for framework deserialization
     }
 
     public Long getId() {

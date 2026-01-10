@@ -15,9 +15,7 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Implementation of BookService.
@@ -26,6 +24,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class BookServiceImpl implements BookService {
+    
+    private static final String BOOK_NOT_FOUND_BY_ID_MESSAGE = "Book not found with id: %d";
     
     private final BookRepository bookRepository;
     private final NamedParameterJdbcTemplate jdbcTemplate;
@@ -50,7 +50,7 @@ public class BookServiceImpl implements BookService {
         List<Book> books = bookRepository.findAll();
         return books.stream()
                 .map(BookMapper::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
     
     /**
@@ -60,7 +60,7 @@ public class BookServiceImpl implements BookService {
     @Transactional(readOnly = true)
     public BookResponse getBookById(Long id) {
         Book book = bookRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(String.format("Book not found with id: %d", id)));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format(BOOK_NOT_FOUND_BY_ID_MESSAGE, id)));
         return BookMapper.toResponse(book);
     }
     
@@ -84,7 +84,7 @@ public class BookServiceImpl implements BookService {
         List<Book> books = bookRepository.findByAuthor(author);
         return books.stream()
                 .map(BookMapper::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
     
     /**
@@ -96,7 +96,7 @@ public class BookServiceImpl implements BookService {
         List<Book> books = bookRepository.findByTitleContaining(title);
         return books.stream()
                 .map(BookMapper::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
     
     /**
@@ -149,7 +149,7 @@ public class BookServiceImpl implements BookService {
     @Override
     public BookResponse updateBook(Long id, BookRequest bookRequest) {
         Book book = bookRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(String.format("Book not found with id: %d", id)));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format(BOOK_NOT_FOUND_BY_ID_MESSAGE, id)));
         
         // Check if ISBN is being changed and if it conflicts with another book
         if (bookRequest.getIsbn() != null && !bookRequest.getIsbn().equals(book.getIsbn())) {
@@ -167,7 +167,7 @@ public class BookServiceImpl implements BookService {
     @Override
     public BookResponse patchBook(Long id, BookUpdateRequest updateRequest) {
         Book book = bookRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(String.format("Book not found with id: %d", id)));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format(BOOK_NOT_FOUND_BY_ID_MESSAGE, id)));
         
         // Check if ISBN is being changed and if it conflicts with another book
         if (updateRequest.getIsbn() != null && !updateRequest.getIsbn().equals(book.getIsbn())) {
@@ -185,7 +185,7 @@ public class BookServiceImpl implements BookService {
     @Override
     public void deleteBook(Long id) {
         if (!bookRepository.existsById(id)) {
-            throw new ResourceNotFoundException(String.format("Book not found with id: %d", id));
+            throw new ResourceNotFoundException(String.format(BOOK_NOT_FOUND_BY_ID_MESSAGE, id));
         }
         bookRepository.deleteById(id);
     }
