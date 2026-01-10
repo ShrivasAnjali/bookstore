@@ -12,6 +12,10 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 
 @DisplayName("BookMapper Tests")
 class BookMapperTest {
@@ -206,5 +210,216 @@ class BookMapperTest {
     void shouldNotUpdateFromRequestWhenEntityIsNull() {
         // Should not throw exception
         BookMapper.updateEntityFromRequest(null, bookRequest);
+    }
+
+    @Test
+    @DisplayName("Should update entity with empty BookUpdateRequest (all fields null)")
+    void shouldUpdateEntityWithEmptyUpdateRequest() {
+        String originalTitle = entity.getTitle();
+        String originalAuthor = entity.getAuthor();
+        String originalIsbn = entity.getIsbn();
+        BigDecimal originalPrice = entity.getPrice();
+        Integer originalQuantity = entity.getQuantity();
+        LocalDateTime originalUpdatedAt = entity.getUpdatedAt();
+        
+        // Create an empty update request (all fields null)
+        BookUpdateRequest emptyRequest = new BookUpdateRequest();
+        
+        BookMapper.updateEntity(entity, emptyRequest);
+        
+        // All fields should remain unchanged
+        assertThat(entity.getTitle()).isEqualTo(originalTitle);
+        assertThat(entity.getAuthor()).isEqualTo(originalAuthor);
+        assertThat(entity.getIsbn()).isEqualTo(originalIsbn);
+        assertThat(entity.getPrice()).isEqualTo(originalPrice);
+        assertThat(entity.getQuantity()).isEqualTo(originalQuantity);
+        // But updatedAt should still be updated
+        assertThat(entity.getUpdatedAt()).isAfter(originalUpdatedAt);
+    }
+
+    @Test
+    @DisplayName("Should map BookRequest to Entity with null ISBN")
+    void shouldMapBookRequestToEntityWithNullIsbn() {
+        bookRequest.setIsbn(null);
+        
+        Book result = BookMapper.toEntity(bookRequest);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getIsbn()).isNull();
+        assertThat(result.getTitle()).isEqualTo(bookRequest.getTitle());
+        assertThat(result.getCreatedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Should map BookRequest to Entity with null values")
+    void shouldMapBookRequestToEntityWithNullValues() {
+        BookRequest nullRequest = new BookRequest();
+        nullRequest.setTitle(null);
+        nullRequest.setAuthor(null);
+        nullRequest.setIsbn(null);
+        nullRequest.setPrice(null);
+        nullRequest.setQuantity(null);
+        
+        Book result = BookMapper.toEntity(nullRequest);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getTitle()).isNull();
+        assertThat(result.getAuthor()).isNull();
+        assertThat(result.getIsbn()).isNull();
+        assertThat(result.getPrice()).isNull();
+        assertThat(result.getQuantity()).isNull();
+        assertThat(result.getCreatedAt()).isNotNull();
+        assertThat(result.getUpdatedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Should update entity with BookUpdateRequest - only ISBN")
+    void shouldUpdateEntityWithOnlyIsbn() {
+        LocalDateTime originalUpdatedAt = entity.getUpdatedAt();
+        updateRequest.setIsbn("NEWISBN123");
+        
+        BookMapper.updateEntity(entity, updateRequest);
+        
+        assertThat(entity.getIsbn()).isEqualTo("NEWISBN123");
+        assertThat(entity.getUpdatedAt()).isAfter(originalUpdatedAt);
+    }
+
+    @Test
+    @DisplayName("Should update entity with BookUpdateRequest - only author")
+    void shouldUpdateEntityWithOnlyAuthor() {
+        LocalDateTime originalUpdatedAt = entity.getUpdatedAt();
+        updateRequest.setAuthor("New Author");
+        
+        BookMapper.updateEntity(entity, updateRequest);
+        
+        assertThat(entity.getAuthor()).isEqualTo("New Author");
+        assertThat(entity.getUpdatedAt()).isAfter(originalUpdatedAt);
+    }
+
+    @Test
+    @DisplayName("Should update entity with BookUpdateRequest - only quantity")
+    void shouldUpdateEntityWithOnlyQuantity() {
+        LocalDateTime originalUpdatedAt = entity.getUpdatedAt();
+        updateRequest.setQuantity(999);
+        
+        BookMapper.updateEntity(entity, updateRequest);
+        
+        assertThat(entity.getQuantity()).isEqualTo(999);
+        assertThat(entity.getUpdatedAt()).isAfter(originalUpdatedAt);
+    }
+
+    @Test
+    @DisplayName("Should update entity with BookUpdateRequest - only price")
+    void shouldUpdateEntityWithOnlyPrice() {
+        LocalDateTime originalUpdatedAt = entity.getUpdatedAt();
+        updateRequest.setPrice(new BigDecimal("99.99"));
+        
+        BookMapper.updateEntity(entity, updateRequest);
+        
+        assertThat(entity.getPrice()).isEqualTo(new BigDecimal("99.99"));
+        assertThat(entity.getUpdatedAt()).isAfter(originalUpdatedAt);
+    }
+
+    @Test
+    @DisplayName("Should handle toEntity with all null fields in BookRequest")
+    void shouldHandleToEntityWithAllNullFields() {
+        BookRequest allNullRequest = new BookRequest();
+        // All fields are null by default
+        
+        Book result = BookMapper.toEntity(allNullRequest);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getTitle()).isNull();
+        assertThat(result.getAuthor()).isNull();
+        assertThat(result.getIsbn()).isNull();
+        assertThat(result.getPrice()).isNull();
+        assertThat(result.getQuantity()).isNull();
+        assertThat(result.getCreatedAt()).isNotNull();
+        assertThat(result.getUpdatedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Should handle updateEntity with updateRequest having only some null fields")
+    void shouldHandleUpdateEntityWithMixedNullFields() {
+        LocalDateTime originalUpdatedAt = entity.getUpdatedAt();
+        String originalTitle = entity.getTitle();
+        String originalIsbn = entity.getIsbn();
+        
+        // Set only some fields, leave others null
+        updateRequest.setAuthor("New Author Only");
+        updateRequest.setPrice(new BigDecimal("55.55"));
+        // title and isbn remain null
+        
+        BookMapper.updateEntity(entity, updateRequest);
+        
+        // Fields set should be updated
+        assertThat(entity.getAuthor()).isEqualTo("New Author Only");
+        assertThat(entity.getPrice()).isEqualTo(new BigDecimal("55.55"));
+        // Null fields should remain unchanged
+        assertThat(entity.getTitle()).isEqualTo(originalTitle);
+        assertThat(entity.getIsbn()).isEqualTo(originalIsbn);
+        assertThat(entity.getUpdatedAt()).isAfter(originalUpdatedAt);
+    }
+
+    @Test
+    @DisplayName("Should handle updateEntityFromRequest with null fields in BookRequest")
+    void shouldHandleUpdateEntityFromRequestWithNullFields() {
+        LocalDateTime originalCreatedAt = entity.getCreatedAt();
+        LocalDateTime originalUpdatedAt = entity.getUpdatedAt();
+        
+        BookRequest requestWithNulls = new BookRequest();
+        requestWithNulls.setTitle(null);
+        requestWithNulls.setAuthor(null);
+        requestWithNulls.setIsbn(null);
+        requestWithNulls.setPrice(null);
+        requestWithNulls.setQuantity(null);
+        
+        BookMapper.updateEntityFromRequest(entity, requestWithNulls);
+        
+        // All fields should be set to null (full update, not partial)
+        assertThat(entity.getTitle()).isNull();
+        assertThat(entity.getAuthor()).isNull();
+        assertThat(entity.getIsbn()).isNull();
+        assertThat(entity.getPrice()).isNull();
+        assertThat(entity.getQuantity()).isNull();
+        assertThat(entity.getCreatedAt()).isEqualTo(originalCreatedAt);
+        assertThat(entity.getUpdatedAt()).isAfter(originalUpdatedAt);
+    }
+
+    @Test
+    @DisplayName("Should prevent instantiation of utility class")
+    void shouldPreventInstantiation() throws Exception {
+        Constructor<BookMapper> constructor = BookMapper.class.getDeclaredConstructor();
+        constructor.setAccessible(true);
+        
+        assertThatThrownBy(() -> constructor.newInstance())
+            .isInstanceOf(InvocationTargetException.class)
+            .hasCauseInstanceOf(UnsupportedOperationException.class)
+            .hasRootCauseMessage("Utility class cannot be instantiated");
+    }
+
+    @Test
+    @DisplayName("Should return null when BookRequest is null in toEntity")
+    void shouldReturnNullWhenBookRequestIsNullInToEntity() {
+        Book result = BookMapper.toEntity(null);
+        
+        assertThat(result).isNull();
+    }
+
+    @Test
+    @DisplayName("Should update entity with BookUpdateRequest - all null fields except one")
+    void shouldUpdateEntityWithOnlyOneNonNullField() {
+        LocalDateTime originalUpdatedAt = entity.getUpdatedAt();
+        String originalTitle = entity.getTitle();
+        
+        // Only set one field, rest are null
+        updateRequest.setPrice(new BigDecimal("88.88"));
+        // title, author, isbn, quantity all null
+        
+        BookMapper.updateEntity(entity, updateRequest);
+        
+        assertThat(entity.getPrice()).isEqualTo(new BigDecimal("88.88"));
+        assertThat(entity.getTitle()).isEqualTo(originalTitle); // Should remain unchanged
+        assertThat(entity.getUpdatedAt()).isAfter(originalUpdatedAt);
     }
 }

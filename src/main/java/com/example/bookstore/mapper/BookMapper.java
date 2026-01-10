@@ -14,12 +14,23 @@ import java.time.LocalDateTime;
 public class BookMapper {
 
     /**
+     * Private constructor to prevent instantiation.
+     * This is a utility class with only static methods.
+     */
+    private BookMapper() {
+        throw new UnsupportedOperationException("Utility class cannot be instantiated");
+    }
+
+    /**
      * Maps a BookRequest DTO to a Book entity.
      *
      * @param bookRequest the book request DTO
-     * @return the Book entity
+     * @return the Book entity, or null if bookRequest is null
      */
     public static Book toEntity(BookRequest bookRequest) {
+        if (bookRequest == null) {
+            return null;
+        }
         Book book = new Book();
         book.setTitle(bookRequest.getTitle());
         book.setAuthor(bookRequest.getAuthor());

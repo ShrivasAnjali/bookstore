@@ -425,4 +425,108 @@ class BookServiceTest {
         verify(bookRepository).findById(1L);
         verify(bookRepository).save(any(Book.class));
     }
+
+    @Test
+    @DisplayName("Should update book when ISBN is same as existing (not changing)")
+    void shouldUpdateBookWhenIsbnIsSameAsExisting() {
+        BookRequest updateRequest = new BookRequest();
+        updateRequest.setTitle("Updated Title");
+        updateRequest.setAuthor("Updated Author");
+        updateRequest.setIsbn("123456"); // Same as testBook's ISBN
+        updateRequest.setPrice(new BigDecimal("30.00"));
+        updateRequest.setQuantity(100);
+
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(testBook));
+        when(bookRepository.save(any(Book.class))).thenReturn(testBook);
+
+        BookResponse result = bookService.updateBook(1L, updateRequest);
+
+        assertThat(result).isNotNull();
+        verify(bookRepository).findById(1L);
+        verify(bookRepository).save(any(Book.class));
+        // When ISBN is same, findByIsbn should not be called for conflict check
+        verify(bookRepository, never()).findByIsbn(anyString());
+    }
+
+    @Test
+    @DisplayName("Should patch book when ISBN is same as existing (not changing)")
+    void shouldPatchBookWhenIsbnIsSameAsExisting() {
+        BookUpdateRequest patchRequest = new BookUpdateRequest();
+        patchRequest.setIsbn("123456"); // Same as testBook's ISBN
+        patchRequest.setPrice(new BigDecimal("50.00"));
+
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(testBook));
+        when(bookRepository.save(any(Book.class))).thenReturn(testBook);
+
+        BookResponse result = bookService.patchBook(1L, patchRequest);
+
+        assertThat(result).isNotNull();
+        verify(bookRepository).findById(1L);
+        verify(bookRepository).save(any(Book.class));
+        // When ISBN is same, findByIsbn should not be called for conflict check
+        verify(bookRepository, never()).findByIsbn(anyString());
+    }
+
+    @Test
+    @DisplayName("Should update book when new ISBN is different and available")
+    void shouldUpdateBookWhenNewIsbnIsDifferentAndAvailable() {
+        BookRequest updateRequest = new BookRequest();
+        updateRequest.setTitle("Updated Title");
+        updateRequest.setAuthor("Updated Author");
+        updateRequest.setIsbn("999888"); // Different from testBook's ISBN
+        updateRequest.setPrice(new BigDecimal("30.00"));
+        updateRequest.setQuantity(100);
+
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(testBook));
+        when(bookRepository.findByIsbn("999888")).thenReturn(Optional.empty()); // Available
+        when(bookRepository.save(any(Book.class))).thenReturn(testBook);
+
+        BookResponse result = bookService.updateBook(1L, updateRequest);
+
+        assertThat(result).isNotNull();
+        verify(bookRepository).findById(1L);
+        verify(bookRepository).findByIsbn("999888"); // Should check for conflict
+        verify(bookRepository).save(any(Book.class));
+    }
+
+    @Test
+    @DisplayName("Should patch book when new ISBN is different and available")
+    void shouldPatchBookWhenNewIsbnIsDifferentAndAvailable() {
+        BookUpdateRequest patchRequest = new BookUpdateRequest();
+        patchRequest.setIsbn("999888"); // Different from testBook's ISBN
+        patchRequest.setPrice(new BigDecimal("50.00"));
+
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(testBook));
+        when(bookRepository.findByIsbn("999888")).thenReturn(Optional.empty()); // Available
+        when(bookRepository.save(any(Book.class))).thenReturn(testBook);
+
+        BookResponse result = bookService.patchBook(1L, patchRequest);
+
+        assertThat(result).isNotNull();
+        verify(bookRepository).findById(1L);
+        verify(bookRepository).findByIsbn("999888"); // Should check for conflict
+        verify(bookRepository).save(any(Book.class));
+    }
+
+    @Test
+    @DisplayName("Should update book when ISBN is null in request")
+    void shouldUpdateBookWhenIsbnIsNullInRequest() {
+        BookRequest updateRequest = new BookRequest();
+        updateRequest.setTitle("Updated Title");
+        updateRequest.setAuthor("Updated Author");
+        updateRequest.setIsbn(null);
+        updateRequest.setPrice(new BigDecimal("30.00"));
+        updateRequest.setQuantity(100);
+
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(testBook));
+        when(bookRepository.save(any(Book.class))).thenReturn(testBook);
+
+        BookResponse result = bookService.updateBook(1L, updateRequest);
+
+        assertThat(result).isNotNull();
+        verify(bookRepository).findById(1L);
+        // When ISBN is null, conflict check should not be performed
+        verify(bookRepository, never()).findByIsbn(anyString());
+        verify(bookRepository).save(any(Book.class));
+    }
 }
