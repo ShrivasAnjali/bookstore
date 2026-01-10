@@ -1,17 +1,30 @@
 package com.example.bookstore.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.time.LocalDateTime;
 
 /**
  * DTO for error responses.
  * Provides a consistent structure for API error messages.
  */
+@Schema(description = "Standard error response structure returned when an API request fails", 
+        example = "{\"timestamp\":\"2024-01-15T10:30:00\",\"status\":404,\"error\":\"Resource Not Found\",\"message\":\"Book with ID 123 not found\",\"path\":\"/api/books/123\"}")
 public class ErrorResponse {
     
+    @Schema(description = "Timestamp when the error occurred", example = "2024-01-15T10:30:00")
     private LocalDateTime timestamp;
+    
+    @Schema(description = "HTTP status code", example = "404")
     private int status;
+    
+    @Schema(description = "Error type or category", example = "Resource Not Found")
     private String error;
+    
+    @Schema(description = "Detailed error message describing what went wrong", example = "Book with ID 123 not found")
     private String message;
+    
+    @Schema(description = "API endpoint path where the error occurred", example = "/api/books/123")
     private String path;
 
     /**

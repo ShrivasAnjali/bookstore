@@ -1,5 +1,7 @@
 package com.example.bookstore.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -7,15 +9,32 @@ import java.time.LocalDateTime;
  * DTO for book response data.
  * Used to expose book information in API responses.
  */
+@Schema(description = "Book information returned by the API", 
+        example = "{\"id\":1,\"title\":\"The Great Gatsby\",\"author\":\"F. Scott Fitzgerald\",\"isbn\":\"978-0-7432-7356-5\",\"price\":12.99,\"quantity\":50,\"createdAt\":\"2024-01-15T10:30:00\",\"updatedAt\":\"2024-01-15T10:30:00\"}")
 public class BookResponse {
     
+    @Schema(description = "Unique identifier of the book", example = "1")
     private Long id;
+    
+    @Schema(description = "Title of the book", example = "The Great Gatsby")
     private String title;
+    
+    @Schema(description = "Name of the book author", example = "F. Scott Fitzgerald")
     private String author;
+    
+    @Schema(description = "International Standard Book Number (ISBN)", example = "978-0-7432-7356-5")
     private String isbn;
+    
+    @Schema(description = "Price of the book in the store currency", example = "12.99")
     private BigDecimal price;
+    
+    @Schema(description = "Quantity of books available in stock", example = "50")
     private Integer quantity;
+    
+    @Schema(description = "Timestamp when the book was created in the system", example = "2024-01-15T10:30:00")
     private LocalDateTime createdAt;
+    
+    @Schema(description = "Timestamp when the book was last updated", example = "2024-01-15T10:30:00")
     private LocalDateTime updatedAt;
 
     /**
