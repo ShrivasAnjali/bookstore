@@ -133,7 +133,7 @@ public class BookController {
      * Searches books by title (partial match).
      *
      * @param title the title to search for
-     * @return list of matching books
+     * @return list of matching book
      */
     @GetMapping("/search")
     @Operation(
